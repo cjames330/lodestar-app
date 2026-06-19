@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lodestar</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#1F1411" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Lodestar" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg-top:#3A2021;--base:#1F1411;--panel:#2B1A18;--panel-2:#35211E;
+    --line:rgba(203,162,75,0.18);--line-soft:rgba(255,255,255,0.06);
+    --ink:#F0E7DC;--muted:#B49C92;--faint:#7E665E;
+    --brass:#CBA24B;--brass-hi:#E3C37A;--danger:#D08A77;--ok:#93B08C;
+    --radius:18px;--shadow:0 18px 50px -28px rgba(0,0,0,0.9);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  html{background:var(--base);}
+  body{
+    font-family:"Inter",system-ui,-apple-system,sans-serif;color:var(--ink);
+    background:radial-gradient(120% 90% at 50% -10%,#46282A 0%,transparent 60%),linear-gradient(180deg,var(--bg-top),var(--base) 55%);
+    background-attachment:fixed;min-height:100vh;
+    padding:calc(env(safe-area-inset-top) + 22px) max(18px,env(safe-area-inset-left)) calc(env(safe-area-inset-bottom) + 40px) max(18px,env(safe-area-inset-right));
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;}
+  .mast{text-align:center;margin-bottom:24px;}
+  .mark{width:30px;height:30px;display:inline-block;}
+  .kicker{font-size:11px;letter-spacing:0.32em;text-transform:uppercase;color:var(--brass);margin-top:8px;font-weight:600;}
+
+  .hero{position:relative;background:radial-gradient(130% 80% at 50% 0%,rgba(203,162,75,0.09),transparent 70%),linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:32px 26px 26px;text-align:center;overflow:hidden;}
+  .hero::before{content:"";position:absolute;inset:7px;border:1px solid var(--line-soft);border-radius:20px;pointer-events:none;}
+  .hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1px solid currentColor;margin-bottom:18px;opacity:.9;}
+  .lesson{font-family:"Fraunces",Georgia,serif;font-optical-sizing:auto;font-weight:400;font-size:clamp(22px,6.2vw,31px);line-height:1.32;margin:0 auto;max-width:24ch;color:var(--ink);transition:opacity .35s ease;}
+  .lesson.swap{opacity:0;}
+  .hero-foot{margin-top:22px;display:flex;align-items:center;justify-content:center;gap:14px;}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 16px;font-size:13px;font-family:inherit;cursor:pointer;transition:.2s;}
+  .ghost:hover{color:var(--ink);border-color:rgba(203,162,75,.45);}
+  .counter{font-size:12px;color:var(--faint);}
+
+  section{margin-top:26px;}
+  .head{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 12px;}
+  .head h2{font-family:"Fraunces",serif;font-weight:500;font-size:17px;margin:0;}
+  .head .hint{font-size:12px;color:var(--faint);}
+  .card{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:18px;}
+
+  /* lists & schedules */
+  .list-rows{display:flex;flex-direction:column;}
+  .lrow{border-top:1px solid var(--line-soft);}
+  .lrow:first-child{border-top:none;}
+  .lrow-main{display:flex;align-items:center;gap:12px;padding:15px 4px;cursor:pointer;}
+  .lrow-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .lrow-name{flex:1;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .lrow-sched{font-size:12.5px;color:var(--muted);}
+  .lrow-sched.off{color:var(--faint);font-style:italic;}
+  .chev{color:var(--faint);font-size:13px;transition:transform .2s;}
+  .lrow.open .chev{transform:rotate(90deg);}
+  .editor{display:none;padding:4px 4px 20px;}
+  .lrow.open .editor{display:block;}
+  .toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .switch{position:relative;width:42px;height:24px;flex:none;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--panel-2);border:1px solid var(--line-soft);border-radius:999px;transition:.2s;cursor:pointer;}
+  .slider::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:rgba(147,176,140,.25);border-color:var(--ok);}
+  .switch input:checked + .slider::before{transform:translateX(18px);background:var(--ok);}
+  .toggle-row .tl{font-size:13.5px;}
+  .flabel{font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
+  .days{display:flex;gap:6px;}
+  .day{flex:1;text-align:center;padding:9px 0;border-radius:9px;background:var(--panel-2);border:1px solid var(--line-soft);color:var(--muted);font-size:12px;cursor:pointer;transition:.15s;user-select:none;}
+  .day.on{background:rgba(203,162,75,.16);border-color:rgba(203,162,75,.5);color:var(--brass-hi);}
+  .quick{display:flex;gap:8px;margin-top:10px;}
+  .quick button{background:none;border:none;color:var(--brass);font-family:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0;}
+  .time-row{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:13px;color:var(--muted);}
+  select{background:var(--panel-2);color:var(--ink);border:1px solid var(--line-soft);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:13px;cursor:pointer;}
+  .preview{margin-top:16px;font-size:13px;line-height:1.5;color:var(--ink);font-family:"Fraunces",serif;}
+  .danger-link{margin-top:16px;background:none;border:none;color:var(--danger);font-family:inherit;font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;}
+  .addlist-btn{width:100%;margin-top:6px;background:transparent;border:1px dashed var(--line);color:var(--brass);border-radius:12px;padding:13px;font-size:14px;font-family:inherit;cursor:pointer;transition:.2s;}
+  .addlist-btn:hover{background:rgba(203,162,75,.07);}
+
+  .row-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;}
+  .mini{background:var(--panel-2);border:1px solid var(--line-soft);color:var(--ink);border-radius:9px;padding:8px 10px;font-family:inherit;font-size:13px;}
+  .mini.name{flex:1;min-width:130px;}
+  .mini.emoji{width:48px;text-align:center;}
+  .swatches{display:flex;gap:6px;}
+  .swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .swatch.sel{border-color:var(--ink);}
+
+  /* delivery */
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line-soft);color:var(--muted);}
+  .pill .d{width:7px;height:7px;border-radius:50%;background:var(--faint);}
+  .pill.live .d{background:var(--ok);box-shadow:0 0 0 3px rgba(147,176,140,.2);}
+  .pill.local .d{background:var(--brass);}
+  .sub{font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .field{margin-top:13px;}
+  .field label{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .field input{width:100%;background:var(--panel-2);border:1px solid var(--line-soft);color:var(--ink);border-radius:10px;padding:11px 12px;font-family:inherit;font-size:14px;}
+  .btn{background:transparent;border:1px solid var(--line);color:var(--brass);border-radius:11px;padding:11px 14px;font-size:13.5px;font-family:inherit;cursor:pointer;transition:.2s;}
+  .btn:hover{background:rgba(203,162,75,.08);}
+  .btn.solid{background:linear-gradient(180deg,var(--brass-hi),var(--brass));color:#2A1E0C;border:none;font-weight:600;}
+  .btn.solid:hover{filter:brightness(1.05);}
+  .btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;}
+  .collapse{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft);}
+  .collapse.open{display:block;}
+  .note{margin-top:14px;font-size:12px;line-height:1.55;color:var(--muted);background:rgba(255,255,255,.025);border:1px solid var(--line-soft);border-left:2px solid var(--brass);border-radius:10px;padding:10px 12px;}
+  .savestate{font-size:12px;color:var(--faint);margin-top:12px;}
+
+  /* lessons */
+  .cat-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .chip{background:var(--panel-2);border:1px solid var(--line-soft);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:13px;font-family:inherit;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:7px;}
+  .chip:hover{color:var(--ink);}
+  .chip.active{background:rgba(203,162,75,.14);border-color:rgba(203,162,75,.5);color:var(--brass-hi);}
+  .cat-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .add{display:flex;gap:9px;margin-top:14px;}
+  .add textarea{flex:1;resize:none;min-height:46px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-soft);border-radius:12px;padding:13px 14px;font-family:"Fraunces",serif;font-size:15px;line-height:1.4;}
+  .add textarea::placeholder{color:var(--faint);font-style:italic;}
+  .add button{flex:none;align-self:stretch;background:var(--panel-2);color:var(--brass);border:1px solid var(--line);border-radius:12px;width:50px;font-size:24px;cursor:pointer;line-height:1;transition:.2s;}
+  .add button:hover{background:rgba(203,162,75,.1);}
+  .add-cat-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted);}
+  ul.list{list-style:none;margin:14px 0 0;padding:0;}
+  ul.list li{display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-top:1px solid var(--line-soft);}
+  ul.list li:first-child{border-top:none;}
+  .li-cat{flex:none;width:9px;height:9px;border-radius:50%;margin-top:8px;}
+  .li-text{flex:1;font-family:"Fraunces",serif;font-size:15.5px;line-height:1.45;}
+  .li-text .tagname{display:block;font-family:"Inter",sans-serif;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;}
+  .del{flex:none;background:transparent;border:none;cursor:pointer;color:var(--faint);font-size:18px;padding:2px 6px;line-height:1;border-radius:7px;transition:.2s;}
+  .del:hover{color:var(--danger);background:rgba(208,138,119,.12);}
+  .empty{color:var(--faint);font-style:italic;font-family:"Fraunces",serif;padding:8px 4px;}
+  footer{margin-top:30px;text-align:center;font-size:11.5px;color:var(--faint);line-height:1.6;}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,8,7,.72);display:none;align-items:center;justify-content:center;z-index:60;padding:22px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);max-width:380px;width:100%;padding:22px;}
+  .modal h3{font-family:"Fraunces",serif;font-weight:500;margin:0 0 8px;font-size:18px;}
+  .modal p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 16px;}
+  .modal select{width:100%;margin-bottom:16px;}
+  .modal .btn-row{margin-top:0;}
+
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%) translateY(20px);background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px 18px;font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.3s;z-index:70;max-width:88vw;text-align:center;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+  :focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 L13.4 10.6 L23 12 L13.4 13.4 L12 23 L10.6 13.4 L1 12 L10.6 10.6 Z" fill="#CBA24B"/></svg>
+    <div class="kicker">Lodestar</div>
+  </div>
+
+  <div class="hero">
+    <span class="hero-tag" id="heroTag" style="display:none"></span>
+    <p class="lesson" id="lesson">Loading…</p>
+    <div class="hero-foot"><button class="ghost" id="another">Show another</button><span class="counter" id="counter"></span></div>
+  </div>
+
+  <!-- Lists & schedules -->
+  <section>
+    <div class="head"><h2>Lists &amp; schedules</h2><span class="hint">when each list sends</span></div>
+    <div class="card">
+      <div class="list-rows" id="listRows"></div>
+      <div class="row-form" id="newCatForm" style="display:none">
+        <input class="mini name" id="catName" placeholder="List name" />
+        <input class="mini emoji" id="catEmoji" placeholder="✦" maxlength="2" />
+        <div class="swatches" id="catSwatches"></div>
+        <button class="btn" id="catSave">Add</button>
+      </div>
+      <button class="addlist-btn" id="newCatToggle">+ New list</button>
+    </div>
+  </section>
+
+  <!-- Delivery -->
+  <section>
+    <div class="head"><h2>Delivery</h2><span id="liveHint" class="hint">push to your phone</span></div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <span class="pill local" id="connPill"><span class="d"></span><span id="connText">Working on this device</span></span>
+        <button class="btn" id="connToggle">Connect GitHub</button>
+      </div>
+      <p class="sub" id="connSub" style="margin-top:11px">Connect a GitHub repo so your lists become the single source the scheduler reads — edit here, and the timed reminders update automatically.</p>
+
+      <div class="collapse" id="ghPanel">
+        <div class="field"><label>Repo (owner / name)</label><input id="ghRepo" placeholder="yourname/lodestar-data" autocapitalize="off" autocorrect="off" spellcheck="false" /></div>
+        <div class="field"><label>Branch</label><input id="ghBranch" placeholder="main" value="main" autocapitalize="off" autocorrect="off" spellcheck="false" /></div>
+        <div class="field"><label>Fine-grained access token</label><input id="ghToken" type="password" placeholder="github_pat_..." autocapitalize="off" autocorrect="off" spellcheck="false" /></div>
+        <div class="note">Use a <b>fine-grained</b> token limited to this one repo, with <b>Contents: Read and write</b>. It's stored only on this device and sent only to GitHub. Steps are in the read-me.</div>
+        <div class="btn-row">
+          <button class="btn solid" id="ghConnect">Connect &amp; load</button>
+          <button class="btn" id="ghDisconnect" style="display:none">Disconnect</button>
+          <button class="btn" id="ghSync" style="display:none">Sync now</button>
+        </div>
+      </div>
+
+      <!-- Lodestar notifications (Web Push) -->
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-size:14px">Lodestar notifications</div>
+            <div class="sub" id="pushStatus" style="margin-top:2px">Off</div>
+          </div>
+          <button class="btn" id="pushToggle">Turn on</button>
+        </div>
+        <p class="sub" style="margin-top:10px">Delivered by Lodestar itself — each list arrives with its own emoji and name. <span id="pushHint"></span></p>
+        <div class="btn-row"><button class="btn" id="pushTest">Preview a notification</button></div>
+      </div>
+
+      <!-- Advanced / backup -->
+      <button class="btn" id="advToggle" style="margin-top:16px;width:100%">Advanced &amp; backup</button>
+      <div class="collapse" id="advPanel">
+        <div class="field"><label>ntfy topic (optional backup)</label><input id="ntfyTopic" placeholder="lodestar-..." autocapitalize="off" autocorrect="off" spellcheck="false" /></div>
+        <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);margin-top:10px;cursor:pointer"><input type="checkbox" id="ntfyBackup" /> Also send via ntfy as a backup</label>
+        <p class="sub" style="margin-top:8px">ntfy keeps working if a Lodestar push subscription ever expires, but those notifications show ntfy's icon. To use it, install the ntfy app and subscribe to this topic.</p>
+        <div class="btn-row">
+          <button class="btn" id="ntfyTest">Test ntfy</button>
+          <button class="btn" id="exportBtn">Download lessons.json</button>
+        </div>
+      </div>
+      <div class="savestate" id="saveState"></div>
+    </div>
+  </section>
+
+  <!-- Lessons -->
+  <section>
+    <div class="head"><h2>Your lessons</h2><span class="hint" id="lessonCount"></span></div>
+    <div class="card">
+      <div class="cat-row" id="filterChips"></div>
+      <div class="add">
+        <textarea id="newLesson" placeholder="Write a principle you want to carry…" rows="1"></textarea>
+        <button id="addBtn" aria-label="Add lesson">+</button>
+      </div>
+      <div class="add-cat-row"><span>Add to:</span><select id="addCat" class="mini"></select></div>
+      <ul class="list" id="list"></ul>
+    </div>
+  </section>
+
+  <footer>Edited here, stored in your repo, delivered by a scheduled job.<br>Add Lodestar to your home screen to use it like an app.</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="mTitle">Delete list</h3>
+    <p id="mBody"></p>
+    <select id="mMove" style="display:none"></select>
+    <div class="btn-row">
+      <button class="btn" id="mCancel">Cancel</button>
+      <button class="btn" id="mMoveBtn" style="display:none">Move &amp; delete list</button>
+      <button class="btn solid" id="mDeleteBtn" style="background:linear-gradient(180deg,#E0A595,var(--danger));color:#2A1410">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ===== storage ===== */
+const mem={};
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch{return k in mem?mem[k]:d;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{mem[k]=v;}},
+  del(k){try{localStorage.removeItem(k);}catch{delete mem[k];}}
+};
+
+/* ===== defaults ===== */
+const SWATCHES=["#CBA24B","#93B08C","#7FA7C4","#D08A77","#B79AC9","#C7A06A"];
+const DAYNAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const FULLDAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const tzGuess=(Intl.DateTimeFormat().resolvedOptions().timeZone)||"UTC";
+function rndTopic(){return "lodestar-"+Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);}
+
+function defaultData(){
+  return {
+    config:{timezone:tzGuess,ntfyTopic:rndTopic(),priority:"default",pushEnabled:false,pushSubs:[],ntfyBackup:false},
+    cats:[
+      {id:"recruiting",name:"Recruiting tips",emoji:"🎯",color:"#CBA24B",schedule:{enabled:true,days:[0],hour:9}},
+      {id:"values",name:"Business values",emoji:"⚖️",color:"#93B08C",schedule:{enabled:true,days:[0,1,2,3,4,5,6],hour:18}},
+      {id:"principles",name:"Principles",emoji:"✦",color:"#7FA7C4",schedule:{enabled:false,days:[],hour:8}}
+    ],
+    lessons:[
+      {text:"Hire for trajectory, not just the résumé in front of you.",cat:"recruiting"},
+      {text:"The best candidates are usually not looking — go to them.",cat:"recruiting"},
+      {text:"Sell the mission before you sell the comp.",cat:"recruiting"},
+      {text:"Be hard on the problem, soft on the person.",cat:"values"},
+      {text:"Underwrite the downside; the upside takes care of itself.",cat:"values"},
+      {text:"Reputation compounds faster than any single deal.",cat:"values"},
+      {text:"The obstacle in the path becomes the path.",cat:"principles"},
+      {text:"Slow is smooth, and smooth is fast.",cat:"principles"},
+      {text:"Act on what you can control. Release the rest.",cat:"principles"}
+    ]
+  };
+}
+
+/* ===== state ===== */
+let data=store.get("lod.v3",null)||defaultData();
+let gh=store.get("lod.gh",null);          // {owner,repo,branch,token}
+let ghSha=null;
+let filter="all", lastShown=-1, newCatColor=SWATCHES[3], openCat=null;
+
+function persistLocal(){store.set("lod.v3",data);}
+const $=s=>document.querySelector(s);
+const catById=id=>data.cats.find(c=>c.id===id)||{name:"List",emoji:"✦",color:"#CBA24B"};
+
+/* ===== GitHub sync ===== */
+function b64e(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64d(b64){return decodeURIComponent(escape(atob(b64.replace(/\s/g,""))));}
+function ghHeaders(){return{"Authorization":"Bearer "+gh.token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};}
+function ghURL(){const[o,r]=gh.repo.split("/");return `https://api.github.com/repos/${o.trim()}/${r.trim()}/contents/lessons.json`;}
+
+async function ghLoad(){
+  const res=await fetch(ghURL()+"?ref="+encodeURIComponent(gh.branch),{headers:ghHeaders()});
+  if(res.status===404){ghSha=null;return null;} // file not there yet
+  if(res.status===401)throw new Error("Token rejected (401). Check the token and its repo access.");
+  if(!res.ok)throw new Error("GitHub load failed ("+res.status+").");
+  const j=await res.json();ghSha=j.sha;
+  return JSON.parse(b64d(j.content));
+}
+let saveTimer=null, saving=false;
+function queueSave(){
+  persistLocal();
+  if(!gh){setSaveState("Saved on this device");return;}
+  clearTimeout(saveTimer);
+  setSaveState("Saving…");
+  saveTimer=setTimeout(ghSave,1100);
+}
+async function ghSave(){
+  if(!gh||saving)return;
+  saving=true;
+  try{
+    const body={message:"Update lessons from Lodestar",content:b64e(JSON.stringify(data,null,2)),branch:gh.branch};
+    if(ghSha)body.sha=ghSha;
+    let res=await fetch(ghURL(),{method:"PUT",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(res.status===409){const fresh=await ghLoad();if(fresh)body.sha=ghSha;res=await fetch(ghURL(),{method:"PUT",headers:{...ghHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body)});}
+    if(!res.ok)throw new Error("Save failed ("+res.status+")");
+    const j=await res.json();ghSha=j.content.sha;
+    setSaveState("Saved to GitHub · "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}));
+  }catch(e){setSaveState("⚠ "+e.message);}
+  saving=false;
+}
+function setSaveState(t){$("#saveState").textContent=t;}
+
+function refreshConnUI(){
+  const pill=$("#connPill"),txt=$("#connText"),btn=$("#connToggle"),liveHint=$("#liveHint");
+  if(gh){
+    pill.className="pill live";txt.textContent="Live · "+gh.repo;
+    btn.textContent="Settings";liveHint.textContent="reminders are scheduled";
+    $("#ghDisconnect").style.display="";$("#ghSync").style.display="";$("#ghConnect").textContent="Reconnect";
+  }else{
+    pill.className="pill local";txt.textContent="Working on this device";
+    btn.textContent="Connect GitHub";liveHint.textContent="not scheduled yet";
+    $("#ghDisconnect").style.display="none";$("#ghSync").style.display="none";$("#ghConnect").textContent="Connect & load";
+  }
+}
+$("#connToggle").addEventListener("click",()=>$("#ghPanel").classList.toggle("open"));
+$("#ghConnect").addEventListener("click",async()=>{
+  const repo=$("#ghRepo").value.trim(),branch=($("#ghBranch").value.trim()||"main"),token=$("#ghToken").value.trim();
+  if(!repo.includes("/")||!token){toast("Enter repo as owner/name and a token");return;}
+  gh={owner:repo.split("/")[0],repo,branch,token};
+  setSaveState("Connecting…");
+  try{
+    const remote=await ghLoad();
+    if(remote){data=remote;persistLocal();toast("Loaded from GitHub");}
+    else{await ghSave();toast("Created lessons.json in your repo");}
+    store.set("lod.gh",gh);
+    $("#ghToken").value="";$("#ghPanel").classList.remove("open");
+    syncTopicField();refreshConnUI();renderAll();
+  }catch(e){gh=null;setSaveState("⚠ "+e.message);toast("Couldn't connect — check details");}
+});
+$("#ghDisconnect").addEventListener("click",()=>{gh=null;ghSha=null;store.del("lod.gh");refreshConnUI();setSaveState("Disconnected — editing locally");toast("Disconnected");});
+$("#ghSync").addEventListener("click",async()=>{if(!gh)return;try{const r=await ghLoad();if(r){data=r;persistLocal();syncTopicField();renderAll();toast("Synced from GitHub");}}catch(e){toast(e.message);}});
+
+/* ===== ntfy ===== */
+function syncTopicField(){$("#ntfyTopic").value=data.config.ntfyTopic||"";$("#ntfyBackup").checked=!!data.config.ntfyBackup;}
+$("#ntfyTopic").addEventListener("change",e=>{data.config.ntfyTopic=e.target.value.trim();queueSave();});
+$("#ntfyTest").addEventListener("click",async()=>{
+  const topic=data.config.ntfyTopic;if(!topic){toast("Set a topic first");return;}
+  const pool=data.lessons.length?data.lessons:[{text:"Your reminders are working.",cat:data.cats[0]?.id}];
+  const l=pool[Math.floor(Math.random()*pool.length)];const c=catById(l.cat);
+  try{
+    await fetch("https://ntfy.sh/",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({topic,title:(c.emoji?c.emoji+" ":"")+c.name,message:l.text})});
+    toast("Test sent — check the ntfy app");
+  }catch(e){toast("Couldn't reach ntfy — check the topic / connection");}
+});
+$("#exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="lessons.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+
+/* ===== Lodestar Web Push ===== */
+const VAPID_PUBLIC="BOoF7Icjnfr0UpmZA9tKzYwOt5e1oOxhxAz18zHwrmz08l3IMVbdDFE1jREVnE0R5pmPPbcBwH1al2P6Zlk9_hA";
+function urlB64ToUint8(b){const pad="=".repeat((4-b.length%4)%4);const s=(b+pad).replace(/-/g,"+").replace(/_/g,"/");const raw=atob(s);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+const pushSupported=()=>("serviceWorker" in navigator)&&("PushManager" in window)&&("Notification" in window);
+const isInstalled=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+function saveSub(j){const subs=data.config.pushSubs||(data.config.pushSubs=[]);const i=subs.findIndex(s=>s.endpoint===j.endpoint);if(i>=0)subs[i]=j;else subs.push(j);}
+
+function refreshPushUI(){
+  const st=$("#pushStatus"),btn=$("#pushToggle"),hint=$("#pushHint");
+  if(!pushSupported()){st.textContent="Not available in this browser";btn.style.display="none";hint.textContent="Open Lodestar from your home-screen icon.";return;}
+  const perm=Notification.permission, on=!!data.config.pushEnabled&&perm==="granted";
+  st.textContent=on?"On"+(gh?"":" · connect GitHub to go live"):(perm==="denied"?"Blocked in settings":"Off");
+  btn.textContent=on?"Turn off":"Turn on";
+  hint.textContent = !isInstalled()&&!on ? "On iPhone, add Lodestar to your home screen first, then turn this on from the installed app." : "";
+}
+async function enablePush(){
+  if(!pushSupported())return toast("Push isn't available here");
+  if(!isInstalled())toast("Tip: add to home screen for reliable iPhone delivery");
+  const reg=await navigator.serviceWorker.ready;
+  let perm=Notification.permission; if(perm!=="granted")perm=await Notification.requestPermission();
+  if(perm!=="granted"){refreshPushUI();return toast("Allow notifications to turn this on");}
+  try{
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)});
+    saveSub(sub.toJSON());data.config.pushEnabled=true;queueSave();refreshPushUI();
+    toast(gh?"Lodestar notifications on":"On — connect GitHub so the scheduler can reach this device");
+  }catch(e){toast("Couldn't subscribe: "+e.message);}
+}
+async function disablePush(){
+  data.config.pushEnabled=false;
+  try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();if(sub){data.config.pushSubs=(data.config.pushSubs||[]).filter(s=>s.endpoint!==sub.endpoint);await sub.unsubscribe();}}catch{}
+  queueSave();refreshPushUI();toast("Lodestar notifications off");
+}
+$("#pushToggle").addEventListener("click",()=>{(data.config.pushEnabled&&Notification.permission==="granted")?disablePush():enablePush();});
+$("#pushTest").addEventListener("click",async()=>{
+  if(!pushSupported())return toast("Not available here");
+  let perm=Notification.permission; if(perm!=="granted")perm=await Notification.requestPermission();
+  if(perm!=="granted")return toast("Allow notifications first");
+  const reg=await navigator.serviceWorker.ready;
+  const c=data.cats[0]||{emoji:"✦",name:"Lodestar",id:""};
+  const pool=data.lessons.filter(l=>l.cat===c.id);
+  const text=pool.length?pool[Math.floor(Math.random()*pool.length)].text:"Your reminders are working.";
+  reg.showNotification(`${c.emoji} ${c.name}`,{body:text,icon:"icon-192.png",badge:"favicon-32.png",tag:"lodestar-test",renotify:true});
+  toast("Preview shown — that's how they'll look");
+});
+async function refreshPushOnBoot(){
+  if(!data.config.pushEnabled||!pushSupported())return;
+  try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();if(sub){saveSub(sub.toJSON());queueSave();}}catch{}
+}
+
+/* advanced / backup */
+$("#advToggle").addEventListener("click",()=>$("#advPanel").classList.toggle("open"));
+$("#ntfyBackup").addEventListener("change",e=>{data.config.ntfyBackup=e.target.checked;queueSave();});
+
+/* ===== hero ===== */
+$("#another").addEventListener("click",showLesson);
+function showLesson(){
+  const pool=data.lessons;
+  if(!pool.length){$("#lesson").textContent="Add a lesson below to begin.";$("#counter").textContent="";$("#heroTag").style.display="none";return;}
+  let i;do{i=Math.floor(Math.random()*pool.length);}while(pool.length>1&&i===lastShown);lastShown=i;
+  const c=catById(pool[i].cat),el=$("#lesson"),tag=$("#heroTag");
+  el.classList.add("swap");
+  setTimeout(()=>{el.textContent=pool[i].text;tag.style.display="inline-flex";tag.style.color=c.color;tag.textContent=`${c.emoji} ${c.name}`;$("#counter").textContent=pool.length>1?`${i+1} of ${pool.length}`:"";el.classList.remove("swap");},220);
+}
+
+/* ===== schedule helpers ===== */
+function fmtHour(h){const ap=h<12?"AM":"PM";const d=h%12===0?12:h%12;return `${d}:00 ${ap}`;}
+function schedSummary(cat){
+  const s=cat.schedule||{};
+  if(!s.enabled||!(s.days&&s.days.length))return{txt:"Paused",off:true};
+  const d=[...s.days].sort((a,b)=>a-b);
+  let when;
+  if(d.length===7)when="Every day";
+  else if(d.length===5&&d.every((x,i)=>x===i))when="Weekdays";
+  else if(d.length===1)when=FULLDAYS[d[0]]+"s";
+  else when=d.map(x=>DAYNAMES[x]).join(", ");
+  return{txt:`${when} · ${fmtHour(s.hour)}`,off:false};
+}
+function dayPhrase(days){
+  const d=[...days].sort((a,b)=>a-b);
+  if(d.length===7)return"every day";
+  if(d.length===5&&d.every((x,i)=>x===i))return"on weekdays";
+  if(d.length===1)return"every "+FULLDAYS[d[0]];
+  return"on "+d.map(x=>DAYNAMES[x]).join(", ");
+}
+function previewText(cat){
+  const s=cat.schedule||{};
+  if(!s.enabled||!(s.days&&s.days.length))return `“${cat.name}” reminders are paused.`;
+  return `A random ${cat.name} lesson, ${dayPhrase(s.days)} at ${fmtHour(s.hour)}.`;
+}
+
+/* ===== render lists & schedules ===== */
+function renderLists(){
+  const wrap=$("#listRows");wrap.innerHTML="";
+  data.cats.forEach(cat=>{
+    const s=schedSummary(cat);
+    const row=document.createElement("div");row.className="lrow"+(openCat===cat.id?" open":"");
+    const main=document.createElement("div");main.className="lrow-main";
+    main.innerHTML=`<span class="lrow-dot" style="background:${cat.color}"></span>
+      <span class="lrow-name">${cat.emoji} ${cat.name}</span>
+      <span class="lrow-sched ${s.off?"off":""}">${s.txt}</span><span class="chev">▶</span>`;
+    main.onclick=()=>{openCat=openCat===cat.id?null:cat.id;renderLists();};
+    row.appendChild(main);
+
+    const ed=document.createElement("div");ed.className="editor";
+    const sc=cat.schedule||(cat.schedule={enabled:false,days:[],hour:9});
+    // toggle
+    const tog=document.createElement("div");tog.className="toggle-row";
+    tog.innerHTML=`<label class="switch"><input type="checkbox" ${sc.enabled?"checked":""}><span class="slider"></span></label><span class="tl">Send reminders for this list</span>`;
+    tog.querySelector("input").onchange=e=>{sc.enabled=e.target.checked;if(sc.enabled&&!sc.days.length)sc.days=[0,1,2,3,4,5,6];queueSave();renderLists();};
+    ed.appendChild(tog);
+    // days
+    const dl=document.createElement("div");dl.className="flabel";dl.textContent="On these days";ed.appendChild(dl);
+    const days=document.createElement("div");days.className="days";
+    DAYNAMES.forEach((nm,idx)=>{
+      const d=document.createElement("div");d.className="day"+(sc.days.includes(idx)?" on":"");d.textContent=nm[0];
+      d.onclick=()=>{sc.days=sc.days.includes(idx)?sc.days.filter(x=>x!==idx):[...sc.days,idx];if(sc.days.length&&!sc.enabled)sc.enabled=true;queueSave();renderLists();};
+      days.appendChild(d);
+    });
+    ed.appendChild(days);
+    const quick=document.createElement("div");quick.className="quick";
+    const qa=document.createElement("button");qa.textContent="Every day";qa.onclick=()=>{sc.days=[0,1,2,3,4,5,6];sc.enabled=true;queueSave();renderLists();};
+    const qw=document.createElement("button");qw.textContent="Weekdays";qw.onclick=()=>{sc.days=[0,1,2,3,4];sc.enabled=true;queueSave();renderLists();};
+    const qc=document.createElement("button");qc.textContent="Clear";qc.onclick=()=>{sc.days=[];queueSave();renderLists();};
+    quick.append(qa,qw,qc);ed.appendChild(quick);
+    // time
+    const tr=document.createElement("div");tr.className="time-row";tr.innerHTML="<span>At</span>";
+    const sel=document.createElement("select");
+    for(let h=0;h<24;h++){const o=document.createElement("option");o.value=h;o.textContent=fmtHour(h);if(h===sc.hour)o.selected=true;sel.appendChild(o);}
+    sel.onchange=e=>{sc.hour=+e.target.value;queueSave();renderLists();};
+    tr.appendChild(sel);ed.appendChild(tr);
+    // preview + delete
+    const pv=document.createElement("div");pv.className="preview";pv.textContent=previewText(cat);ed.appendChild(pv);
+    const del=document.createElement("button");del.className="danger-link";del.textContent="Delete this list";
+    del.onclick=()=>askDeleteList(cat);ed.appendChild(del);
+    row.appendChild(ed);
+    wrap.appendChild(row);
+  });
+}
+
+/* ===== new list ===== */
+$("#newCatToggle").addEventListener("click",()=>{const f=$("#newCatForm");f.style.display=f.style.display==="none"?"flex":"none";});
+const sw=$("#catSwatches");
+SWATCHES.forEach(col=>{const s=document.createElement("div");s.className="swatch"+(col===newCatColor?" sel":"");s.style.background=col;s.onclick=()=>{newCatColor=col;[...sw.children].forEach(x=>x.classList.remove("sel"));s.classList.add("sel");};sw.appendChild(s);});
+$("#catSave").addEventListener("click",()=>{
+  const name=$("#catName").value.trim();if(!name){toast("Name the list first");return;}
+  const id="c"+Date.now().toString(36);
+  data.cats.push({id,name,emoji:($("#catEmoji").value.trim()||"✦"),color:newCatColor,schedule:{enabled:false,days:[],hour:9}});
+  $("#catName").value="";$("#catEmoji").value="";$("#newCatForm").style.display="none";
+  queueSave();renderAll();toast(`Added “${name}”`);
+});
+
+/* ===== delete list w/ optional move ===== */
+let pendingDelete=null;
+function askDeleteList(cat){
+  const count=data.lessons.filter(l=>l.cat===cat.id).length;
+  const others=data.cats.filter(c=>c.id!==cat.id);
+  pendingDelete=cat;
+  $("#mTitle").textContent=`Delete “${cat.name}”?`;
+  const move=$("#mMove"),moveBtn=$("#mMoveBtn");
+  if(count===0){
+    $("#mBody").textContent="This list has no lessons. It will be removed along with its schedule.";
+    move.style.display="none";moveBtn.style.display="none";
+  }else if(others.length===0){
+    $("#mBody").textContent=`This list has ${count} lesson${count>1?"s":""} and it's your only list. Deleting it removes those lessons too.`;
+    move.style.display="none";moveBtn.style.display="none";
+  }else{
+    $("#mBody").textContent=`This list has ${count} lesson${count>1?"s":""}. Move them to another list, or delete them along with the list.`;
+    move.innerHTML="";others.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=`${c.emoji} ${c.name}`;move.appendChild(o);});
+    move.style.display="";moveBtn.style.display="";
+  }
+  $("#mDeleteBtn").textContent=count>0?"Delete lessons too":"Delete list";
+  $("#overlay").classList.add("show");
+}
+function closeModal(){$("#overlay").classList.remove("show");pendingDelete=null;}
+$("#mCancel").addEventListener("click",closeModal);
+$("#overlay").addEventListener("click",e=>{if(e.target===$("#overlay"))closeModal();});
+$("#mMoveBtn").addEventListener("click",()=>{
+  if(!pendingDelete)return;const target=$("#mMove").value;
+  data.lessons.forEach(l=>{if(l.cat===pendingDelete.id)l.cat=target;});
+  removeCat(pendingDelete.id);
+});
+$("#mDeleteBtn").addEventListener("click",()=>{
+  if(!pendingDelete)return;
+  data.lessons=data.lessons.filter(l=>l.cat!==pendingDelete.id);
+  removeCat(pendingDelete.id);
+});
+function removeCat(id){
+  data.cats=data.cats.filter(c=>c.id!==id);
+  if(filter===id)filter="all";if(openCat===id)openCat=null;
+  closeModal();queueSave();renderAll();toast("List deleted");
+}
+
+/* ===== lessons ===== */
+function renderFilters(){
+  const f=$("#filterChips");f.innerHTML="";
+  const all=document.createElement("button");all.className="chip"+(filter==="all"?" active":"");all.textContent="All";all.onclick=()=>{filter="all";renderFilters();renderList();};f.appendChild(all);
+  data.cats.forEach(c=>{const b=document.createElement("button");b.className="chip"+(filter===c.id?" active":"");b.innerHTML=`<span class="cat-dot" style="background:${c.color}"></span>${c.emoji} ${c.name}`;b.onclick=()=>{filter=c.id;renderFilters();renderList();};f.appendChild(b);});
+}
+function renderCatSelect(){const s=$("#addCat");const prev=s.value;s.innerHTML="";data.cats.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=`${c.emoji} ${c.name}`;s.appendChild(o);});if([...s.options].some(o=>o.value===prev))s.value=prev;}
+function renderList(){
+  const ul=$("#list");$("#lessonCount").textContent=data.lessons.length?`${data.lessons.length} saved`:"";ul.innerHTML="";
+  const pool=data.lessons.filter(l=>filter==="all"||l.cat===filter);
+  if(!pool.length){ul.innerHTML='<li><span class="empty">Nothing here yet. Add one above.</span></li>';return;}
+  data.lessons.forEach((l,i)=>{
+    if(filter!=="all"&&l.cat!==filter)return;
+    const c=catById(l.cat),li=document.createElement("li");
+    const dot=document.createElement("span");dot.className="li-cat";dot.style.background=c.color;
+    const span=document.createElement("span");span.className="li-text";
+    span.innerHTML=`<span class="tagname" style="color:${c.color}">${c.emoji} ${c.name}</span>`;span.appendChild(document.createTextNode(l.text));
+    const del=document.createElement("button");del.className="del";del.innerHTML="&times;";del.setAttribute("aria-label","Delete");
+    del.onclick=()=>{data.lessons.splice(i,1);queueSave();renderList();showLesson();};
+    li.append(dot,span,del);ul.appendChild(li);
+  });
+}
+const nl=$("#newLesson");
+function addLesson(){const t=nl.value.trim();if(!t)return;data.lessons.push({text:t,cat:$("#addCat").value||data.cats[0]?.id});nl.value="";nl.style.height="46px";queueSave();renderList();showLesson();toast("Lesson added");}
+$("#addBtn").addEventListener("click",addLesson);
+nl.addEventListener("input",()=>{nl.style.height="46px";nl.style.height=nl.scrollHeight+"px";});
+nl.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))addLesson();});
+
+/* ===== toast ===== */
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2800);}
+
+/* ===== service worker ===== */
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+/* ===== boot ===== */
+function renderAll(){renderLists();renderFilters();renderCatSelect();renderList();showLesson();}
+async function boot(){
+  syncTopicField();refreshConnUI();refreshPushUI();renderAll();
+  if(gh){setSaveState("Syncing…");try{const r=await ghLoad();if(r){data=r;persistLocal();syncTopicField();renderAll();}setSaveState("Live · synced");}catch(e){setSaveState("⚠ "+e.message);}}
+  else setSaveState("Working on this device — connect GitHub to schedule reminders");
+  refreshPushUI();refreshPushOnBoot();
+}
+boot();
+</script>
+</body>
+</html>
